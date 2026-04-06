@@ -1118,4 +1118,11 @@ app.listen(PORT, function() {
   console.log('\n  Abra no navegador: http://localhost:' + PORT + '\n');
   // Auto-connect on startup if session exists
   autoConnect();
+  // Self-ping to keep Render free tier awake (every 14 min)
+  if (process.env.RENDER_EXTERNAL_URL) {
+    setInterval(function() {
+      require('https').get(process.env.RENDER_EXTERNAL_URL + '/status', function(){});
+    }, 14 * 60 * 1000);
+    logFn('Self-ping ativo (Render)');
+  }
 });
