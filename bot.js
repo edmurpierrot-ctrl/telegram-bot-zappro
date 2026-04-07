@@ -838,13 +838,6 @@ textarea{width:100%;min-height:100px;resize:vertical}
     </div>
   </div>
 
-  <!-- Message -->
-  <div class="card">
-    <h2>Mensagem</h2>
-    <textarea id="msg">${escapedMsg}</textarea>
-    <button class="btn btn-gray" onclick="saveMsg()">Salvar</button>
-  </div>
-
   <!-- Log -->
   <div class="card">
     <h2>Log</h2>
