@@ -846,6 +846,15 @@ textarea{width:100%;min-height:100px;resize:vertical}
 </div>
 </div>
 
+<!-- Message (full width below layout) -->
+<div style="max-width:1400px;margin:16px auto 0">
+  <div class="card">
+    <h2>Mensagem de Divulgacao</h2>
+    <textarea id="msg" style="min-height:320px;font-size:14px;line-height:1.6">${escapedMsg}</textarea>
+    <button class="btn btn-gray" onclick="saveMsg()">Salvar mensagem</button>
+  </div>
+</div>
+
 <script>
 var $=function(id){return document.getElementById(id)};
 var allGroups = JSON.parse(atob('${groupsDataAttr}'));
