@@ -892,6 +892,12 @@ evtSource.onmessage = function(e) {
     if (d.type === 'log') appendLog(d.entry);
     if (d.type === 'groups') { allGroups = d.groups; updateStats(d.stats); renderGroups(); }
     if (d.type === 'connected') { $('conn-status').textContent = 'Conectado'; }
+    if (d.type === 'autopilot') {
+      if ($('ap-joined')) $('ap-joined').textContent = d.joined || 0;
+      if ($('ap-posted')) $('ap-posted').textContent = d.posted || 0;
+      if (d.active) { $('ap-start-btn').style.display='none'; $('ap-stop-btn').style.display=''; $('ap-info').style.display=''; }
+      else { $('ap-start-btn').style.display=''; $('ap-stop-btn').style.display='none'; $('ap-info').style.display='none'; }
+    }
     if (d.type === 'searchDone' || d.type === 'joinDone' || d.type === 'postDone' || d.type === 'repostDone' || d.type === 'cleanupDone' || d.type === 'batchDone') {
       enableButtons();
     }
