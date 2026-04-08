@@ -947,6 +947,24 @@ function doRepost() { disableButtons(); api('/repost', { limit: parseInt($('post
 function doCleanup() { disableButtons(); api('/cleanup', {}); }
 function saveMsg() { api('/message', { message: $('msg').value }); }
 
+// ── Autopilot ──
+function startAutopilot() {
+  var target = parseInt($('ap-target').value) || 15;
+  var startH = parseInt($('ap-start').value) || 10;
+  var endH = parseInt($('ap-end').value) || 23;
+  api('/autopilot/start', { target: target, startHour: startH, endHour: endH });
+  $('ap-start-btn').style.display = 'none';
+  $('ap-stop-btn').style.display = '';
+  $('ap-info').style.display = '';
+  $('ap-daily').textContent = target;
+}
+function stopAutopilot() {
+  api('/autopilot/stop', {});
+  $('ap-start-btn').style.display = '';
+  $('ap-stop-btn').style.display = 'none';
+  $('ap-info').style.display = 'none';
+}
+
 // ── Selection & Batch ──
 function toggleSelectAll(checked) {
   var filtered = filterGroups(allGroups);
