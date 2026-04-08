@@ -64,9 +64,10 @@
     "username": "kiwifymembros",
     "participants": 133,
     "keyword": "afiliados kiwify",
-    "joined": false,
+    "joined": true,
     "posted": false,
-    "foundAt": "2026-04-06T12:58:30.369Z"
+    "foundAt": "2026-04-06T12:58:30.369Z",
+    "joinedAt": "2026-04-08T00:07:22.959Z"
   },
   {
     "id": "1705757760",
@@ -104,9 +105,10 @@
     "username": "MarketingDigital_Networking",
     "participants": 4444,
     "keyword": "marketing digital",
-    "joined": false,
+    "joined": true,
     "posted": false,
-    "foundAt": "2026-04-06T12:58:40.777Z"
+    "foundAt": "2026-04-06T12:58:40.777Z",
+    "joinedAt": "2026-04-08T00:07:38.878Z"
   },
   {
     "id": "1745336312",

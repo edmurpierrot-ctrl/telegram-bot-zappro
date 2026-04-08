@@ -1115,6 +1115,160 @@ setInterval(function() {
 </script></body></html>`;
 }
 
+// ── Autopilot Mode ──────────────────────────────────────────────────────────
+let autopilot = { active: false, dailyTarget: 15, startHour: 10, endHour: 23, joined: 0, posted: 0, searched: false };
+
+async function autopilotTick() {
+  if (!autopilot.active || !isConnected) return;
+
+  const now = new Date();
+  const hour = now.getHours();
+
+  // Fora do horario ativo
+  if (hour < autopilot.startHour || hour >= autopilot.endHour) {
+    // Reset contadores a meia-noite
+    if (hour === 0 && autopilot.joined > 0) {
+      autopilot.joined = 0;
+      autopilot.posted = 0;
+      autopilot.searched = false;
+      logFn('[Autopilot] Contadores resetados para novo dia.');
+    }
+    return;
+  }
+
+  // Ja atingiu meta do dia
+  if (autopilot.joined >= autopilot.dailyTarget) return;
+
+  // Busca novos grupos 1x por dia (no inicio)
+  if (!autopilot.searched) {
+    logFn('[Autopilot] Buscando novos grupos...');
+    await searchGroups(10);
+    autopilot.searched = true;
+    broadcastSSE({ type: 'autopilot', ...autopilot });
+    return; // Proximo tick faz join
+  }
+
+  const groups = loadGroups();
+  const pendingJoin = groups.filter(g => !g.joined && g.username);
+  const pendingPost = groups.filter(g => g.joined && !g.posted && !g.left);
+
+  // Prioridade 1: postar nos que ja entrou mas nao postou
+  if (pendingPost.length > 0) {
+    const g = pendingPost[0];
+    logFn(`[Autopilot] Postando em: ${g.title}`);
+    try {
+      const entity = await client.getEntity(g.username || Number(g.id));
+      const canWrite = await checkWritePermission(entity);
+      if (!canWrite) {
+        g.posted = true;
+        g.postError = 'FORBIDDEN';
+        await leaveGroup(g);
+        saveGroups(groups);
+        broadcastGroups();
+        return;
+      }
+      await client.sendMessage(entity, { message: MESSAGE });
+      g.posted = true;
+      g.postedAt = new Date().toISOString();
+      autopilot.posted++;
+      logFn(`[Autopilot] Postou em ${g.title} (${autopilot.posted} hoje)`);
+      saveGroups(groups);
+      broadcastGroups();
+      broadcastSSE({ type: 'autopilot', ...autopilot });
+    } catch (e) {
+      logFn(`[Autopilot] Erro ao postar: ${e.message}`);
+      if (e.message.includes('FORBIDDEN') || e.message.includes('CHAT_WRITE') || e.message.includes('CHAT_SEND')) {
+        g.posted = true;
+        g.postError = 'FORBIDDEN';
+        await leaveGroup(g);
+        saveGroups(groups);
+        broadcastGroups();
+      }
+    }
+    return;
+  }
+
+  // Prioridade 2: entrar em grupo novo
+  if (pendingJoin.length > 0) {
+    const g = pendingJoin[0];
+    logFn(`[Autopilot] Entrando em: ${g.title} (@${g.username})`);
+    try {
+      await client.invoke(new Api.channels.JoinChannel({ channel: g.username }));
+      g.joined = true;
+      g.joinedAt = new Date().toISOString();
+      autopilot.joined++;
+      logFn(`[Autopilot] Entrou em ${g.title} (${autopilot.joined}/${autopilot.dailyTarget} hoje)`);
+      saveGroups(groups);
+      broadcastGroups();
+      broadcastSSE({ type: 'autopilot', ...autopilot });
+    } catch (e) {
+      logFn(`[Autopilot] Erro ao entrar: ${e.message}`);
+      if (e.message.includes('CHANNELS_TOO_MUCH')) {
+        logFn('[Autopilot] Limite de canais do Telegram atingido!');
+        autopilot.active = false;
+      }
+    }
+    return;
+  }
+
+  // Sem grupos pendentes — busca mais
+  logFn('[Autopilot] Sem grupos pendentes. Buscando mais...');
+  autopilot.searched = false;
+}
+
+// Calcula intervalo entre acoes baseado no horario
+function getAutopilotInterval() {
+  const totalMinutes = (autopilot.endHour - autopilot.startHour) * 60; // 780 min
+  // Cada grupo = entrar + postar = 2 ações, entao target * 2
+  const actionsPerDay = autopilot.dailyTarget * 2;
+  const intervalMin = Math.floor(totalMinutes / actionsPerDay);
+  return Math.max(intervalMin, 5) * 60 * 1000; // minimo 5 min, em ms
+}
+
+let autopilotTimer = null;
+
+function startAutopilot() {
+  if (autopilotTimer) clearInterval(autopilotTimer);
+  autopilot.active = true;
+  autopilot.joined = 0;
+  autopilot.posted = 0;
+  autopilot.searched = false;
+  const interval = getAutopilotInterval();
+  logFn(`[Autopilot] ATIVADO — ${autopilot.dailyTarget} grupos/dia, ${autopilot.startHour}h-${autopilot.endHour}h, intervalo ~${Math.round(interval/60000)}min`);
+  autopilotTimer = setInterval(() => autopilotTick().catch(e => logFn(`[Autopilot] Erro: ${e.message}`)), interval);
+  // Executa primeiro tick imediatamente
+  autopilotTick().catch(e => logFn(`[Autopilot] Erro: ${e.message}`));
+  broadcastSSE({ type: 'autopilot', ...autopilot });
+}
+
+function stopAutopilot() {
+  autopilot.active = false;
+  if (autopilotTimer) { clearInterval(autopilotTimer); autopilotTimer = null; }
+  logFn('[Autopilot] DESATIVADO');
+  broadcastSSE({ type: 'autopilot', ...autopilot });
+}
+
+app.post('/autopilot/start', (req, res) => {
+  const target = parseInt(req.body.target) || 15;
+  const startH = parseInt(req.body.startHour) || 10;
+  const endH = parseInt(req.body.endHour) || 23;
+  autopilot.dailyTarget = target;
+  autopilot.startHour = startH;
+  autopilot.endHour = endH;
+  startAutopilot();
+  res.json({ ok: true, autopilot });
+});
+
+app.post('/autopilot/stop', (req, res) => {
+  stopAutopilot();
+  res.json({ ok: true });
+});
+
+app.get('/autopilot/status', (req, res) => {
+  res.json(autopilot);
+});
+
+
 app.listen(PORT, function() {
   logFn('Bot rodando em http://localhost:' + PORT);
   console.log('\n  Abra no navegador: http://localhost:' + PORT + '\n');
