@@ -838,6 +838,28 @@ textarea{width:100%;min-height:100px;resize:vertical}
     </div>
   </div>
 
+  <!-- Autopilot -->
+  <div class="card" id="autopilot-card">
+    <h2>Autopilot</h2>
+    <div style="font-size:12px;color:#9ca3af;margin-bottom:10px">Entra em grupos e posta automaticamente ao longo do dia</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+      <div><label style="font-size:11px;color:#6b7280">Grupos/dia</label><input id="ap-target" type="number" value="15" min="1" max="50" class="input" style="width:100%"/></div>
+      <div><label style="font-size:11px;color:#6b7280">Inicio</label><input id="ap-start" type="number" value="10" min="0" max="23" class="input" style="width:100%"/></div>
+      <div><label style="font-size:11px;color:#6b7280">Fim</label><input id="ap-end" type="number" value="23" min="1" max="24" class="input" style="width:100%"/></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-green" id="ap-start-btn" onclick="startAutopilot()">Ativar Autopilot</button>
+      <button class="btn btn-red" id="ap-stop-btn" onclick="stopAutopilot()" style="display:none">Parar</button>
+      <span id="ap-status" style="font-size:12px;color:#6b7280"></span>
+    </div>
+    <div id="ap-info" style="margin-top:8px;font-size:12px;display:none;padding:8px;background:#1f2937;border-radius:8px">
+      <span style="color:#22c55e;font-weight:700">● ATIVO</span> —
+      Entrou: <strong id="ap-joined">0</strong> |
+      Postou: <strong id="ap-posted">0</strong> |
+      Meta: <strong id="ap-daily">15</strong>/dia
+    </div>
+  </div>
+
   <!-- Log -->
   <div class="card">
     <h2>Log</h2>
